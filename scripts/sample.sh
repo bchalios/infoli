@@ -98,6 +98,10 @@ if [[ "$PLATFORM" == "x86" ]]; then
 		cd $SRC_DIR
 		make hybrid_xeon || exit 1
 		cd -
+	elif [[ "$BUILD" == "ompss" ]]; then
+		cd $SRC_DIR
+		make ompss_xeon || exit 1
+		cd -
 	else
 		echo "Unable to make for target.Please review build options.\n"
 		exit 1
@@ -127,6 +131,8 @@ if [[ "$BUILD" == "omp" ]]; then
 	MYJOB="$BIN_DIR/infoli.x -n ${SIZE} -p ${PROB} -t ${STIME}"
 elif [[ "$BUILD" == "hybrid" ]]; then
 	MYJOB="mpirun -np ${RANKSNUM} $BIN_DIR/infoli.x -n ${SIZE} -p ${PROB} -t ${STIME}"
+elif [[ "$BUILD" == "ompss" ]]; then
+	MYJOB="$BIN_DIR/infoli.x -n ${SIZE} -p ${PROB} -t ${STIME}"
 fi
 echo $MYJOB
 

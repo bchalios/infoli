@@ -18,7 +18,8 @@ UTILS_O= utils.o
 UTILS_PHI_O= utils_phi.o
 
 # common directives
-COMP_FLAGS= -c -Wall -O3 -vec-report6 -opt-subscript-in-range -opt-report-phase ipo_inl -lm
+COMP_FLAGS= -c -Wall -O3 -Iutils -vec-report6 -opt-subscript-in-range -opt-report-phase ipo_inl -lm
+COMPSS_FLAGS= -c -Wall -O3 -Iutils -qopt-subscript-in-range -qopt-report-phase=ipo -lm
 UTILS_FLAGS= -c -Wall -O3 -lm
 LINK_FLAGS= -O3 -lm
 
@@ -43,9 +44,11 @@ SVMLSO= svml
 # version directives
 OMP_FLAGS= -openmp
 HYBRID_FLAGS= -mt_mpi -openmp
+OMPSS_FLAGS= -qopenmp
 
 # subdirectories
 OMP_DIR= openmp/
+OMPSS_DIR= ompss/
 HYBRID_DIR= hybrid/
 UTILS_DIR= utils/
 REG_DIR= regression_test/
@@ -54,13 +57,19 @@ REG_DIR= regression_test/
 BIN_DIR= ../bin/
 
 # --- TARGETS
-all: hybrid_xeon hybrid_phi omp_xeon omp_phi
+all: hybrid_xeon hybrid_phi omp_xeon omp_phi ompss_xeon
 
 omp_xeon: ${OMP_DIR}${SRC} ${OMP_DIR}${HDR} ${UTILS_DIR}${UTILS_O}
 	@echo #
 	@echo "Building For Pure OpenMP Version on Xeon"
 	icc ${OMP_DIR}${SRC} -o ${OMP_DIR}${OBJ} ${OMP_FLAGS} ${COMP_FLAGS}
 	icc ${OMP_DIR}${OBJ} ${UTILS_DIR}${UTILS_O} -o ${BIN_DIR}${EXE} ${OMP_FLAGS} ${LINK_FLAGS}
+
+ompss_xeon: ${OMPSS_DIR}${SRC} ${OMPSS_DIR}${HDR} ${UTILS_DIR}${UTILS_O}
+	@echo #
+	@echo "Building For Pure OpenMP Version on Xeon"
+	icc ${OMPSS_DIR}${SRC} -o ${OMPSS_DIR}${OBJ} ${OMPSS_FLAGS} ${COMPSS_FLAGS}
+	icc ${OMPSS_DIR}${OBJ} ${UTILS_DIR}${UTILS_O} -o ${BIN_DIR}${EXE} ${OMPSS_FLAGS} ${LINK_FLAGS}
 
 omp_phi: ${OMP_DIR}${SRC} ${OMP_DIR}${HDR} ${UTILS_DIR}${UTILS_PHI_O}
 	@echo #

@@ -38,6 +38,7 @@
 #include <mpi.h>
 #include <omp.h>
 #include "infoli.h"
+#include "utils.h"
 
 int main(int argc, char *argv[]){
 	

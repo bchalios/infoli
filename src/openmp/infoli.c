@@ -38,6 +38,7 @@
 #include <time.h>
 #include <omp.h>
 #include "infoli.h"
+#include "utils.h"
 //#include <mic_power.h>
 
 int main(int argc, char **argv){

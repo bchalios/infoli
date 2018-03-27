@@ -5,10 +5,9 @@
 #include <math.h>
 #include <sys/time.h>
 #include <time.h>
+#include "utils.h"
 
 int cellCount, IO_NETWORK_DIM1, IO_NETWORK_DIM2, IO_NETWORK_SIZE;
-
-typedef float mod_prec;
 
 void print_usage() {
 
@@ -335,9 +334,4 @@ int conn_marking_nearest_1D(int* conn_buffer, short* external_cell, int global_c
 	}
 
 	return connections_found;
-}
-
-inline mod_prec min(mod_prec a, mod_prec b){
-
-	return (a < b) ? a : b;
 }

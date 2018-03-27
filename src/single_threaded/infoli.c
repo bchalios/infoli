@@ -34,6 +34,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "infoli.h"
+#include "utils.h"
 
 int cellCount;
 int IO_NETWORK_SIZE;
