@@ -143,7 +143,7 @@ if [[ "$PLATFORM" == "phi" ]]; then
 	exit 1
 fi
 
-export KMP_AFFINITY=balanced;
+export KMP_AFFINITY=granularity=core;
 export OMP_NUM_THREADS=$THREADSNUM;
 echo ""
 echo "Executing for $BUILD build on $PLATFORM ..."
