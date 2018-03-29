@@ -23,21 +23,23 @@
 
 #ifndef MAIN_H_
 #define MAIN_H_
+
+#include <stdio.h>
+#include <sys/time.h>
+
 /*** MACROS ***/
 #define RAND_INIT 0 // make it zero to facilitate debugging , 0 for debugging / 1 for random states
 
 //IO network size is IO_NETWORK_DIM1*IO_NETWORK_DIM2
 #define IAPP_MAX_CHARS 6 //	2 integer, the dot, 2 decimals and the delimiter 
-#define PRINTING 1	 //	flag enabling or disabling output , axon's voltage is the output at every step
 
-int core_id, cores, cellCount;
 int IO_NETWORK_DIM1, IO_NETWORK_DIM2, IO_NETWORK_SIZE;
 float CONN_PROBABILITY;
 struct timeval tic, toc;
 
 /*** TYPEDEFS AND STRUCTS***/
-//typedef double mod_prec;
-typedef float mod_prec;                 //BE VERY CAREFUL TO CHECK ALL DAMNED SCANFS TO BE SURE YOU SCAN FOR SINGLE-POINT ACCURACY, KNOWN ISSUE WITH COND VALUES) AND MPI_TYPES
+typedef double mod_prec;
+//typedef float mod_prec;                 //BE VERY CAREFUL TO CHECK ALL DAMNED SCANFS TO BE SURE YOU SCAN FOR SINGLE-POINT ACCURACY, KNOWN ISSUE WITH COND VALUES) AND MPI_TYPES
 
 // Cell properties, biological properties for the cells
 mod_prec DELTA;    // 0.05 milli sec = 50 micro sec
@@ -71,18 +73,52 @@ mod_prec V_CA;  // Ca reversal potential (120)
 mod_prec V_H;   // H current reversal potential
 mod_prec V_L;   // leak current
 
-/* struct that encapsulates the network's
-* stable parameters (connection conductances
-* and Ids)
-*/
-
+/* struct that encapsulates the network's stable parameters
+ * (connection conductances and Ids) */
 typedef __attribute__((aligned(64))) struct cellCompParams{
 	int *total_amount_of_neighbours;
 	mod_prec **neighConductances;
 	int **neighId;
-}cellCompParams;
+} cellCompParams;
+
+typedef __attribute__((aligned(64))) struct {
+	/* ids of the cells */
+	int *cellID;
+
+	/* cell parameters */
+	cellCompParams cell_params;
+
+	/* number of cells in simulation */
+	int cellCount;
+	
+	/* experiment variables and arrays */
+	mod_prec iApp;
+	mod_prec *iAppIn;
+	mod_prec *V_dend;
+	mod_prec *V_axon;
+	mod_prec *V_soma;
+	mod_prec *Hcurrent_q;
+	mod_prec *Calcium_r;
+	mod_prec *Calcium_k;
+	mod_prec *Calcium_l;
+	mod_prec *Ca2Plus;
+	mod_prec *Potassium_s;
+	mod_prec *Potassium_n;
+	mod_prec *Potassium_p;
+	mod_prec *Potassium_x_s;
+	mod_prec *Potassium_x_a;
+	mod_prec *Sodium_h;
+	mod_prec *Sodium_m;
+	mod_prec *Sodium_m_a;
+	mod_prec *Sodium_h_a;
+	mod_prec *g_CaL;
+	mod_prec *I_CaH;
+	mod_prec *I_c;
+} infoli_conf_t;
 
 /*** FUNCTION PROTOTYPES ***/
+
+void simulate(int simulation_steps, infoli_conf_t *config);
 
 int ReadFileLine(FILE *, mod_prec *);
 void read_g_CaL_from_file(mod_prec *);

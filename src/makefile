@@ -8,18 +8,21 @@ EXE= infoli.x
 # define C source files
 SRC= infoli.c
 UTILS= utils.c
+OMPSS_SRC=ompss/infoli.c ompss/simulation.c ompss/infoli_log.c
 
 # define C header files
 HDR= infoli.h
+OMPSS_HEADERS= ompss/infoli.h ompss/infoli_log.h
 
 # define C object files
 OBJ= infoli.o
 UTILS_O= utils.o
 UTILS_PHI_O= utils_phi.o
+OMPSS_OBJ=${OMPSS_SRC:.c=.o}
 
 # common directives
 COMP_FLAGS= -c -Wall -O3 -Iutils -vec-report6 -opt-subscript-in-range -opt-report-phase ipo_inl -lm
-COMPSS_FLAGS= -c -Wall -O3 -Iutils -qopt-subscript-in-range -qopt-report-phase=ipo -lm
+COMPSS_FLAGS= -c -Wall -O3 -g -ggdb -Iutils -qopt-report-phase=vec -qopt-subscript-in-range -qopt-report-phase=ipo -lm
 UTILS_FLAGS= -c -Wall -O3 -lm
 LINK_FLAGS= -O3 -lm
 
@@ -59,17 +62,20 @@ BIN_DIR= ../bin/
 # --- TARGETS
 all: hybrid_xeon hybrid_phi omp_xeon omp_phi ompss_xeon
 
+
 omp_xeon: ${OMP_DIR}${SRC} ${OMP_DIR}${HDR} ${UTILS_DIR}${UTILS_O}
 	@echo #
 	@echo "Building For Pure OpenMP Version on Xeon"
 	icc ${OMP_DIR}${SRC} -o ${OMP_DIR}${OBJ} ${OMP_FLAGS} ${COMP_FLAGS}
 	icc ${OMP_DIR}${OBJ} ${UTILS_DIR}${UTILS_O} -o ${BIN_DIR}${EXE} ${OMP_FLAGS} ${LINK_FLAGS}
 
-ompss_xeon: ${OMPSS_DIR}${SRC} ${OMPSS_DIR}${HDR} ${UTILS_DIR}${UTILS_O}
+ompss_xeon: ${OMPSS_OBJ} ${OMPSS_HDR} ${UTILS_DIR}${UTILS_O}
 	@echo #
 	@echo "Building For Pure OpenMP Version on Xeon"
-	icc ${OMPSS_DIR}${SRC} -o ${OMPSS_DIR}${OBJ} ${OMPSS_FLAGS} ${COMPSS_FLAGS}
-	icc ${OMPSS_DIR}${OBJ} ${UTILS_DIR}${UTILS_O} -o ${BIN_DIR}${EXE} ${OMPSS_FLAGS} ${LINK_FLAGS}
+	icc ${OMPSS_OBJ} ${UTILS_DIR}${UTILS_O} -o ${BIN_DIR}${EXE} ${OMPSS_FLAGS} ${LINK_FLAGS}
+
+%.o: %.c
+	icc -o $@ $< ${OMPSS_FLAGS} ${COMPSS_FLAGS}
 
 omp_phi: ${OMP_DIR}${SRC} ${OMP_DIR}${HDR} ${UTILS_DIR}${UTILS_PHI_O}
 	@echo #
@@ -127,6 +133,6 @@ ${UTILS_DIR}${UTILS_PHI_O}: ${UTILS_DIR}${UTILS}
 clean:
 	@echo #
 	@echo "-- Cleaning Src --"
-	rm -f ${OMP_DIR}*.o ${HYBRID_DIR}*.o ${BIN_DIR}*.x
-	rm -f ${OMP_DIR}*.optrpt ${HYBRID_DIR}*.optrpt
+	rm -f ${OMP_DIR}*.o ${HYBRID_DIR}*.o ${BIN_DIR}*.x ${OMPSS_DIR}/*.o
+	rm -f ${OMP_DIR}*.optrpt ${HYBRID_DIR}*.optrpt ${OMPSS_DIR}/*.optrpt
 	rm -f ${UTILS_DIR}*.o

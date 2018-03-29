@@ -335,3 +335,19 @@ int conn_marking_nearest_1D(int* conn_buffer, short* external_cell, int global_c
 
 	return connections_found;
 }
+
+void print_buffer_double(int nr_elem, mod_prec *buffer)
+{
+	int i;
+	for (i = 0; i < nr_elem; ++i)
+		printf("%.2lf%c", buffer[i], (i == nr_elem - 1) ?
+			'\n' : ' ');
+}
+
+void print_buffer_int(int nr_elem, int *buffer)
+{
+	int i;
+	for (i = 0; i < nr_elem; ++i)
+		printf("%d%c", buffer[i], (i == nr_elem - 1) ?
+			'\n' : ' ');
+}
