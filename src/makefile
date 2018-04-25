@@ -21,8 +21,8 @@ UTILS_PHI_O= utils_phi.o
 OMPSS_OBJ=${OMPSS_SRC:.c=.o}
 
 # common directives
-COMP_FLAGS= -c -Wall -O3 -Iutils -vec-report6 -opt-subscript-in-range -opt-report-phase ipo_inl -lm
-COMPSS_FLAGS= -c -Wall -O3 -g -ggdb -Iutils -qopt-report-phase=vec -qopt-subscript-in-range -qopt-report-phase=ipo -lm
+COMP_FLAGS= -c -Wall -O3 -Iutils -xCORE-AVX512 -qopt-report-phase=vec -qopt-report-phase=ipo -opt-subscript-in-range -lm
+COMPSS_FLAGS= -std=c99 -c -Wall -O3 -g -ggdb -Iutils -xCORE-AVX512 -qopt-report-phase=vec -qopt-report=5 -qopt-subscript-in-range -qopt-report-phase=ipo -lm
 UTILS_FLAGS= -c -Wall -O3 -lm
 LINK_FLAGS= -O3 -lm
 

@@ -38,8 +38,8 @@ float CONN_PROBABILITY;
 struct timeval tic, toc;
 
 /*** TYPEDEFS AND STRUCTS***/
-typedef double mod_prec;
-//typedef float mod_prec;                 //BE VERY CAREFUL TO CHECK ALL DAMNED SCANFS TO BE SURE YOU SCAN FOR SINGLE-POINT ACCURACY, KNOWN ISSUE WITH COND VALUES) AND MPI_TYPES
+//typedef double mod_prec;
+typedef float mod_prec;                 //BE VERY CAREFUL TO CHECK ALL DAMNED SCANFS TO BE SURE YOU SCAN FOR SINGLE-POINT ACCURACY, KNOWN ISSUE WITH COND VALUES) AND MPI_TYPES
 
 // Cell properties, biological properties for the cells
 mod_prec DELTA;    // 0.05 milli sec = 50 micro sec

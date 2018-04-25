@@ -682,7 +682,7 @@ int main(int argc, char **argv){
 
 			if (PRINTING&&((simStep%print_granularity)==0)) {
 
-			#pragma omp parallel for simd shared (V_axon, pOutFile) private(target_cell, tempbuf)
+			//#pragma omp parallel for simd shared (V_axon, pOutFile) private(target_cell, tempbuf)
 				for (target_cell=0;target_cell<cellCount;target_cell++) {
 					#ifndef G_CAL_FROM_FILE
 						sprintf(tempbuf, "%d : %.8f ", target_cell+1, V_axon[target_cell]);

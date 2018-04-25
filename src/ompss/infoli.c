@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "utils.h"
@@ -108,7 +109,8 @@ void infoli_init(char *params_file_name, infoli_conf_t *config)
 
 
 	/*  Network Specific Values */
-	for (i = 0; i < config->cellCount; i++) {
+	int cell_count = IO_NETWORK_SIZE;
+	for (i = 0; i < cell_count; i++) {
 		config->cellID[i] = i;
 		//Initial dendritic parameters
 		config->V_dend[i] = initValues[23];
@@ -260,9 +262,14 @@ void gap_junction_functions(mod_prec iApp, int cellCount, mod_prec *iAppIn,
 		mod_prec *V_dend, int **neighId, mod_prec **neighConductances,
 		int *total_amount_of_neighbours, mod_prec *I_c)
 {
-
-	int target_cell, i, neighbours;
-	for (target_cell = 0; target_cell < cellCount; target_cell++) {
+	int target_cell, i;
+	#pragma omp parallel for \
+		shared(iAppIn, iApp, V_dend, I_c, neighId, \
+			total_amount_of_neighbours, \
+			neighConductances) \
+		private(target_cell) \
+		firstprivate(cellCount)
+	for (target_cell = 0; target_cell < cellCount; ++target_cell) {
 		/* Feeding of input current */
 		iAppIn[target_cell] = iApp;
 
@@ -273,21 +280,19 @@ void gap_junction_functions(mod_prec iApp, int cellCount, mod_prec *iAppIn,
 		__assume_aligned(neighConductances[target_cell], 64);
 		__assume_aligned(V_dend, 64);
 
-		neighbours = total_amount_of_neighbours[target_cell];
-		for (i = 0; i < neighbours; i++) {
+		int neighbours = total_amount_of_neighbours[target_cell];
+
+		for (int i = 0; i < neighbours; ++i) {
 			int requested_neighbour = neighId[target_cell][i];
 			mod_prec voltage = V_dend[requested_neighbour];
 			mod_prec V = V_dend[target_cell] - voltage;
 			/* SCHWEIGHOFER 2004 VERSION */
-			mod_prec f = 0.8 * exp(-1 * pow(V, 2) / 100) + 0.2;
+			mod_prec f = 0.8f * expf(-1 * powf(V, 2) / 100) + 0.2f;
 			I_c_storage += neighConductances[target_cell][i] * f * V;
 		}
 
 		I_c[target_cell] = I_c_storage;
 	}
-	print_buffer_double(cellCount, V_dend);
-	print_buffer_double(cellCount, iAppIn);
-	print_buffer_double(cellCount, I_c);
 }
 
 void update_state(int cellCount, mod_prec *V_dend, mod_prec *Hcurrent_q,
@@ -330,43 +335,43 @@ void update_state(int cellCount, mod_prec *V_dend, mod_prec *Hcurrent_q,
 		/* ~DENDRITIC COMPUTATIONS~ */
 
 		/* Dend H current calcs */
-		mod_prec q_inf = 1 /(1 + exp((V_dend[target_cell] + 80) / 4));
-		mod_prec tau_q = 1 /(exp(-0.086 * V_dend[target_cell]
-				- 14.6) + exp(0.070 * V_dend[target_cell]
-				- 1.87));
+		mod_prec q_inf = 1 / (1 + expf((V_dend[target_cell] + 80) / 4));
+		mod_prec tau_q = 1 / (expf(-0.086f * V_dend[target_cell] - 14.6f)
+					+ expf(0.07f * V_dend[target_cell]
+					- 1.87f));
 		mod_prec dq_dt = (q_inf - Hcurrent_q[target_cell]) / tau_q;
 		Hcurrent_q[target_cell] = DELTA * dq_dt
-				+ Hcurrent_q[target_cell];
+					+ Hcurrent_q[target_cell];
 	
 		/* Dend Ca current calcs */
-		mod_prec alpha_r = 1.7 / (1 + exp(-(V_dend[target_cell] - 5)
-				/ 13.9));
-		mod_prec beta_r = 0.02 * (V_dend[target_cell] + 8.5)
-				/ (exp((V_dend[target_cell] + 8.5) / 5) - 1);
+		mod_prec alpha_r = 1.7f / (1 + expf(-(V_dend[target_cell] - 5)
+					/ 13.9f));
+		mod_prec beta_r = 0.02f * (V_dend[target_cell] + 8.5f)
+				/ (expf((V_dend[target_cell] + 8.5f) / 5) - 1);
 		mod_prec r_inf = alpha_r / (alpha_r + beta_r);
 		mod_prec tau_r = 5 / (alpha_r + beta_r);
 		mod_prec dr_dt = (r_inf - Calcium_r[target_cell]) / tau_r;
 		Calcium_r[target_cell] = DELTA * dr_dt + Calcium_r[target_cell];
 
 		/* Dend K current calcs */
-		mod_prec alpha_s = min((0.00002 * Ca2Plus[target_cell]), 0.01);
-		mod_prec beta_s = 0.015;
+		mod_prec alpha_s = min((0.00002f * Ca2Plus[target_cell]), 0.01f);
+		mod_prec beta_s = 0.015f;
 		mod_prec s_inf = alpha_s / (alpha_s + beta_s);
 		mod_prec tau_s = 1 / (alpha_s + beta_s);
 		mod_prec ds_dt = (s_inf - Potassium_s[target_cell]) / tau_s;
 		Potassium_s[target_cell] = DELTA * ds_dt
-				+ Potassium_s[target_cell];
+					+ Potassium_s[target_cell];
 
 		/* Dend Cal current calcs */
-		mod_prec dCa_dt = -3 * I_CaH[target_cell] - 0.075
+		mod_prec dCa_dt = -3 * I_CaH[target_cell] - 0.075f
 				* Ca2Plus[target_cell];
 		Ca2Plus[target_cell] = DELTA * dCa_dt + Ca2Plus[target_cell];
 
 		/* Dendritic voltage and current calcs */
-		mod_prec I_sd = (G_INT / (1 - P1)) * (V_dend[target_cell]
-				- V_soma[target_cell]);
-		mod_prec I_CaH_temp = G_CAH * pow(Calcium_r[target_cell], 2)
-				* (V_dend[target_cell] - V_CA);
+		mod_prec I_sd = (G_INT / (1 - P1)) * 
+				(V_dend[target_cell] - V_soma[target_cell]);
+		mod_prec I_CaH_temp = G_CAH * powf(Calcium_r[target_cell], 2)
+					* (V_dend[target_cell] - V_CA);
 		mod_prec I_K_Ca = G_K_CA * Potassium_s[target_cell] * (V_dend[target_cell] - V_K);
 		mod_prec I_ld = G_LD * (V_dend[target_cell] - V_L);
 		mod_prec I_h = G_H * Hcurrent_q[target_cell]
@@ -381,36 +386,36 @@ void update_state(int cellCount, mod_prec *V_dend, mod_prec *Hcurrent_q,
 		/* ~SOMATIC COMPUTATIONS~ */
 
 		/* Soma calcium calcs */
-		mod_prec k_inf = (1 / (1 + exp(-1 * (V_soma[target_cell] + 61)
-						/ 4.2)));
-		mod_prec l_inf = (1 / (1 + exp((V_soma[target_cell] + 85.5)
-						/ 8.5)));
+		mod_prec k_inf = (1 / (1 + expf(-1 * (V_soma[target_cell] + 61)
+						/ 4.2f)));
+		mod_prec l_inf = (1 / (1 + expf((V_soma[target_cell] + 85.5f)
+						/ 8.5f)));
 		mod_prec tau_k = 1;
-		mod_prec tau_l = ((20 * exp((V_soma[target_cell] + 160) / 30)
-					/ (1 + exp((V_soma[target_cell] + 84) 
-							/ 7.3))) + 35);
+		mod_prec tau_l = ((20 * expf((V_soma[target_cell] + 160) / 30)
+					/ (1 + expf((V_soma[target_cell] + 84) 
+							/ 7.3f))) + 35);
 		mod_prec dk_dt = (k_inf - Calcium_k[target_cell]) / tau_k;
 		mod_prec dl_dt = (l_inf - Calcium_l[target_cell]) / tau_l;
 		Calcium_k[target_cell] = DELTA * dk_dt + Calcium_k[target_cell];
 		Calcium_l[target_cell] = DELTA * dl_dt + Calcium_l[target_cell];
 
 		/* Soma sodium calcs */
-		mod_prec m_inf = 1 / (1 + (exp((-30 - V_soma[target_cell])
-						/ 5.5)));
-		mod_prec h_inf = 1 / (1 + (exp((-70 - V_soma[target_cell])
-						/-5.8)));
-		mod_prec tau_h = 3 * exp((-40 - V_soma[target_cell]) / 33);
+		mod_prec m_inf = 1 / (1 + (expf((-30 - V_soma[target_cell])
+						/ 5.5f)));
+		mod_prec h_inf = 1 / (1 + (expf((-70 - V_soma[target_cell])
+						/-5.8f)));
+		mod_prec tau_h = 3 * expf((-40 - V_soma[target_cell]) / 33);
 		mod_prec dh_dt = (h_inf - Sodium_h[target_cell]) / tau_h;
 		Sodium_m[target_cell] = m_inf;
 		Sodium_h[target_cell] = Sodium_h[target_cell] + DELTA * dh_dt;
 
 		/* Soma potassium calcs */
 		mod_prec n_inf = 1 /
-			(1 + exp(( -3 - V_soma[target_cell]) / 10));
+			(1 + expf(( -3 - V_soma[target_cell]) / 10));
 		mod_prec p_inf = 1 /
-			(1 + exp((-51 - V_soma[target_cell]) / -12));
+			(1 + expf((-51 - V_soma[target_cell]) / -12));
 		mod_prec tau_n = 5 +
-			(47 * exp( -(-50 - V_soma[target_cell]) / 900));
+			(47 * expf( -(-50 - V_soma[target_cell]) / 900));
 		mod_prec tau_p = tau_n;
 		mod_prec dn_dt = (n_inf - Potassium_n[target_cell]) / tau_n;
 		mod_prec dp_dt = (p_inf - Potassium_p[target_cell]) / tau_p;
@@ -420,33 +425,33 @@ void update_state(int cellCount, mod_prec *V_dend, mod_prec *Hcurrent_q,
 			+ Potassium_p[target_cell];
 
 		/* Soma potassium X calcs */
-		mod_prec alpha_x_s = 0.13 * (V_soma[target_cell] + 25)
-				/ (1 - exp(-(V_soma[target_cell] + 25) / 10));
-		mod_prec beta_x_s = 1.69 * exp(-0.0125
+		mod_prec alpha_x_s = 0.13f * (V_soma[target_cell] + 25)
+				/ (1 - expf(-(V_soma[target_cell] + 25) / 10));
+		mod_prec beta_x_s = 1.69f * expf(-0.0125f
 				* (V_soma[target_cell] + 35));
 		mod_prec x_inf_s = alpha_x_s / (alpha_x_s + beta_x_s);
 		mod_prec tau_x_s = 1 / (alpha_x_s + beta_x_s);
 		mod_prec dx_dt_s = (x_inf_s - Potassium_x_s[target_cell])
 				/ tau_x_s;
-		Potassium_x_s[target_cell] = 0.05 * dx_dt_s
+		Potassium_x_s[target_cell] = 0.05f * dx_dt_s
 				+ Potassium_x_s[target_cell];
 
 		/* somatic voltage and current calcs */
 		mod_prec I_ds = (G_INT / P1)
-			* (V_soma[target_cell] - V_dend[target_cell]);
+				* (V_soma[target_cell] - V_dend[target_cell]);
 		mod_prec I_CaL = g_CaL[target_cell]
-			* pow(Calcium_k[target_cell], 3)
-			* Calcium_l[target_cell]
-			* (V_soma[target_cell] - V_CA);
-		mod_prec I_Na_s = G_NA_S * pow(Sodium_m[target_cell], 3)
-			* Sodium_h[target_cell] * (V_soma[target_cell] - V_NA);
+				* powf(Calcium_k[target_cell], 3)
+				* Calcium_l[target_cell]
+				* (V_soma[target_cell] - V_CA);
+		mod_prec I_Na_s = G_NA_S * powf(Sodium_m[target_cell], 3)
+				* Sodium_h[target_cell] * (V_soma[target_cell] - V_NA);
 		mod_prec I_ls = G_LS * (V_soma[target_cell] - V_L);
-		mod_prec I_Kdr_s = G_KDR_S * pow(Potassium_n[target_cell], 4)
-			* (V_soma[target_cell] - V_K);
-		mod_prec I_K_s = G_K_S * pow(Potassium_x_s[target_cell], 4)
-			* (V_soma[target_cell] - V_K);
+		mod_prec I_Kdr_s = G_KDR_S * powf(Potassium_n[target_cell], 4)
+				* (V_soma[target_cell] - V_K);
+		mod_prec I_K_s = G_K_S * powf(Potassium_x_s[target_cell], 4)
+				* (V_soma[target_cell] - V_K);
 		mod_prec I_as = (G_INT / (1 - P2))
-			* (V_soma[target_cell] - V_axon[target_cell]);
+				* (V_soma[target_cell] - V_axon[target_cell]);
 		mod_prec dVs_dt = (-(I_CaL + I_ds + I_as + I_Na_s + I_ls
 					+ I_Kdr_s + I_K_s)) / C_M;
 
@@ -454,34 +459,34 @@ void update_state(int cellCount, mod_prec *V_dend, mod_prec *Hcurrent_q,
 
 		/* Axon sodium calcs */
 		mod_prec m_inf_a = 1 /
-			(1 + (exp((-30 - V_axon[target_cell]) / 5.5)));
+			(1 + (expf((-30 - V_axon[target_cell]) / 5.5f)));
 		mod_prec h_inf_a = 1 /
-			(1 + (exp((-60 - V_axon[target_cell]) / -5.8)));
-		mod_prec tau_h_a = 1.5 * exp((-40 - V_axon[target_cell]) / 33);
+			(1 + (expf((-60 - V_axon[target_cell]) / -5.8f)));
+		mod_prec tau_h_a = 1.5f * expf((-40 - V_axon[target_cell]) / 33);
 		mod_prec dh_dt_a = (h_inf_a - Sodium_h_a[target_cell]) / tau_h_a;
 		Sodium_m_a[target_cell] = m_inf_a;
 		Sodium_h_a[target_cell] = Sodium_h_a[target_cell] + DELTA
 			* dh_dt_a;
 
 		/* Axon potassium calcs */
-		mod_prec alpha_x_a = 0.13 * (V_axon[target_cell] + 25)
-			/ (1 - exp(-(V_axon[target_cell] + 25) / 10));
-		mod_prec beta_x_a = 1.69 * exp(-0.0125 * (V_axon[target_cell]
+		mod_prec alpha_x_a = 0.13f * (V_axon[target_cell] + 25)
+			/ (1 - expf(-(V_axon[target_cell] + 25) / 10));
+		mod_prec beta_x_a = 1.69f * expf(-0.0125f * (V_axon[target_cell]
 					+ 35));
 		mod_prec x_inf_a = alpha_x_a / (alpha_x_a + beta_x_a);
 		mod_prec tau_x_a = 1 / (alpha_x_a + beta_x_a);
 		mod_prec dx_dt_a = (x_inf_a - Potassium_x_a[target_cell])
 			/ tau_x_a;
-		Potassium_x_a[target_cell] = 0.05 * dx_dt_a
+		Potassium_x_a[target_cell] = 0.05f * dx_dt_a
 			+ Potassium_x_a[target_cell];
 
 		/* Axonal voltage and current calcs */
-		mod_prec I_Na_a = G_NA_A * pow(Sodium_m_a[target_cell], 3)
+		mod_prec I_Na_a = G_NA_A * powf(Sodium_m_a[target_cell], 3)
 			* Sodium_h_a[target_cell] * (V_axon[target_cell] - V_NA);
 		mod_prec I_la = G_LA * (V_axon[target_cell] - V_L);
 		mod_prec I_sa = (G_INT / P2) * (V_axon[target_cell]
 				- V_soma[target_cell]);
-		mod_prec I_K_a = G_K_A * pow(Potassium_x_a[target_cell], 4) *
+		mod_prec I_K_a = G_K_A * powf(Potassium_x_a[target_cell], 4) *
 			(V_axon[target_cell] - V_K);
 		mod_prec dVa_dt = (-(I_K_a + I_sa + I_la + I_Na_a)) / C_M;
 
