@@ -32,3 +32,6 @@ sandbox/*
 # Binaries
 
 *.x
+
+# Result files
+results/

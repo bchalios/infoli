@@ -4,7 +4,7 @@ echo "Runs a job with the infoli simulator from current Directory."
 echo "It creates a new folder or a given folder outputs the results there"
 echo ""
 echo "Usage: ./sample.sh -dir <dir to put results in, leave blank for current dir>"
-echo "-pl <platform selection: x86 or phi> -bld <build: omp or hybrid>"
+echo "-pl <platform selection: x86 or phi> -bld <build: omp, ompss or hybrid>"
 echo "-ns <network size> -pb <network density> -st <simulation time>"
 echo "-np <number of MPI Ranks (if hybrid build)> -th <threads num>"
 echo ""
@@ -27,7 +27,7 @@ then
 fi
 
 DATE=`date +%T`
-DNAME="testRun"_$DATE
+DNAME="results"
 
 # Thread options
 MICNAME="mic0"
@@ -88,6 +88,8 @@ do
     shift # past argument or value
 done
 
+DNAME="${DNAME}/${PLATFORM}/${BUILD}/${DATE}"
+
 # make for the correct target
 if [[ "$PLATFORM" == "x86" ]]; then
 	if [[ "$BUILD" == "omp" ]]; then
@@ -125,7 +127,7 @@ else
 fi
 
 echo "SIZE= ${SIZE}|Density= ${PROB}|Simtime= ${STIME}|Threads=$THREADSNUM DNameP:$DNAME"
-mkdir -p $CUR_DIR/$DNAME
+mkdir -p $DNAME
 
 if [[ "$BUILD" == "omp" ]]; then
 	MYJOB="$BIN_DIR/infoli.x -n ${SIZE} -p ${PROB} -t ${STIME}"
@@ -149,9 +151,9 @@ echo ""
 echo "Executing for $BUILD build on $PLATFORM ..."
 $MYJOB
 echo "Moving Results ..."
-mv InferiorOlive_Output*.txt $CUR_DIR/${DNAME}
+mv InferiorOlive_Output*.txt ${DNAME}
 
-echo "Simulation Finished, results in \"$CUR_DIR/$DNAME/\" folder.\n"
+echo "Simulation Finished, results in \"$DNAME/\" folder.\n"
 echo "-----------------------------------\n"
 
 echo "Everything ok!"
