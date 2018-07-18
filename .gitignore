@@ -35,3 +35,6 @@ sandbox/*
 
 # Result files
 results/
+
+# vim files
+**.swp
