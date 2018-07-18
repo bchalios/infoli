@@ -88,7 +88,7 @@ do
     shift # past argument or value
 done
 
-DNAME="${DNAME}/${PLATFORM}/${BUILD}/${DATE}"
+DNAME="${DNAME}/${PLATFORM}/${BUILD}"
 
 # make for the correct target
 if [[ "$PLATFORM" == "x86" ]]; then
