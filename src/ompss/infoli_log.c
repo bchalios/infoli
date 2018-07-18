@@ -21,7 +21,7 @@ void infoli_init_log(const char *log_filename)
 #ifdef G_CAL_FROM_FILE
 	print_granularity=1;
 #else
-	print_granularity=1;
+	print_granularity=100;
 #endif
 }
 

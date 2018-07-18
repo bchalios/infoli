@@ -229,7 +229,7 @@ void infoli_init(char *params_file_name, infoli_conf_t *config)
 
 #ifndef G_CAL_FROM_FILE
 	/* Initialize output file */
-	infoli_log("#simSteps Input(Iapp) Output(V_axon)");
+	infoli_log("#simSteps Input(Iapp) Output(V_axon)\n");
 	for (i = 0; i < config->cellCount; ++i)
 		infoli_log("%d%c", config->cellID[i],
 			(i == config->cellCount - 1) ? '\n' : ' ');
@@ -504,6 +504,7 @@ void simulate(int simulation_steps, infoli_conf_t *config)
 	cellCompParams cell_params = config->cell_params;
 	int sim_step;
 
+	printf("simulation_steps: %d\n", simulation_steps);
 	for (sim_step = 0; sim_step < simulation_steps; ++sim_step) {
 		if (sim_step >= 20000 && sim_step < 20500 - 1)
 			iApp = 6;
@@ -535,5 +536,4 @@ void simulate(int simulation_steps, infoli_conf_t *config)
 		
 		infoli_print_results_periodic(sim_step, config->cellCount, config->V_axon);
 	}
-
 }
