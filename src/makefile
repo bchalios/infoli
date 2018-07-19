@@ -8,11 +8,11 @@ EXE= infoli.x
 # define C source files
 SRC= infoli.c
 UTILS= utils.c
-OMPSS_SRC=ompss/infoli.c ompss/simulation.c ompss/infoli_log.c
+OMPSS_SRC=ompss/infoli.c ompss/simulation.c ompss/infoli_log.c ompss/infoli_perf.c
 
 # define C header files
 HDR= infoli.h
-OMPSS_HEADERS= ompss/infoli.h ompss/infoli_log.h
+OMPSS_HEADERS= ompss/infoli.h ompss/infoli_log.h ompss/infoli_perf.h
 
 # define C object files
 OBJ= infoli.o
@@ -22,7 +22,7 @@ OMPSS_OBJ=${OMPSS_SRC:.c=.o}
 
 # common directives
 COMP_FLAGS= -c -Wall -O3 -Iutils -xCORE-AVX512 -qopt-report-phase=vec -qopt-report-phase=ipo -opt-subscript-in-range -lm
-COMPSS_FLAGS= -std=c99 -c -Wall -O3 -g -ggdb -Iutils -xCORE-AVX512 -qopt-report-phase=vec -qopt-report=5 -qopt-subscript-in-range -qopt-report-phase=ipo -lm
+COMPSS_FLAGS= -std=gnu99 -c -Wall -O3 -g -ggdb -Iutils -xCORE-AVX512 -qopt-report-phase=vec -qopt-report=5 -qopt-subscript-in-range -qopt-report-phase=ipo -lm -lrt
 UTILS_FLAGS= -c -Wall -O3 -lm
 LINK_FLAGS= -O3 -lm
 

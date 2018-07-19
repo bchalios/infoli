@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "infoli.h"
 #include "infoli_log.h"
+#include "infoli_perf.h"
 
 static inline void *_malloc64(size_t size)
 {
@@ -504,6 +505,9 @@ void simulate(int simulation_steps, infoli_conf_t *config)
 	cellCompParams cell_params = config->cell_params;
 	int sim_step;
 
+	struct infoli_perf_region *gjf_stats = infoli_perf_create_region("gap juction functions");
+	struct infoli_perf_region *upd_stats = infoli_perf_create_region("update state");
+
 	printf("simulation_steps: %d\n", simulation_steps);
 	for (sim_step = 0; sim_step < simulation_steps; ++sim_step) {
 		if (sim_step >= 20000 && sim_step < 20500 - 1)
@@ -515,6 +519,8 @@ void simulate(int simulation_steps, infoli_conf_t *config)
 		infoli_log_periodic(sim_step, " %d %.2f ", sim_step + 1, iApp);
 #endif
 
+		infoli_perf_start(gjf_stats);
+		
 		/* compute gap junction functions */
 		gap_junction_functions(config->iApp, config->cellCount,
 			config->iAppIn, config->V_dend, cell_params.neighId,
@@ -522,6 +528,9 @@ void simulate(int simulation_steps, infoli_conf_t *config)
 			cell_params.total_amount_of_neighbours,
 			config->I_c);
 
+		infoli_perf_stop(gjf_stats);
+		infoli_perf_start(upd_stats);
+		
 		/* compute the new state (voltages, channels, etc.) */
 		update_state(config->cellCount, config->V_dend,
 			config->Hcurrent_q, config->Calcium_r, config->Ca2Plus,
@@ -533,7 +542,12 @@ void simulate(int simulation_steps, infoli_conf_t *config)
 			config->Sodium_m_a, config->Sodium_h_a, config->V_axon,
 			config->Potassium_x_a
 		);
+
+		infoli_perf_stop(upd_stats);
 		
 		infoli_print_results_periodic(sim_step, config->cellCount, config->V_axon);
 	}
+
+	infoli_perf_print(gjf_stats);
+	infoli_perf_print(upd_stats);
 }
