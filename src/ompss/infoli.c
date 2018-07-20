@@ -332,6 +332,13 @@ void update_state(int cellCount, mod_prec *V_dend, mod_prec *Hcurrent_q,
 	__assume_aligned(Sodium_h_a, 64);
 	__assume_aligned(Potassium_x_a, 64);
 
+	#pragma omp parallel for simd \
+		shared(V_dend, Hcurrent_q, Calcium_r, \
+			Potassium_s, I_CaH, Ca2Plus, iAppIn, I_c, \
+			V_soma, g_CaL, Sodium_m, Sodium_h, Calcium_k, \
+			Calcium_l, Potassium_n, Potassium_p, Potassium_x_s,\
+			V_axon, Sodium_m_a, Sodium_h_a, Potassium_x_a) \
+		private(target_cell)
 	for (target_cell = 0; target_cell < cellCount; ++target_cell) {
 		/* ~DENDRITIC COMPUTATIONS~ */
 
