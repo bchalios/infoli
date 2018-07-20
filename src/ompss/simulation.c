@@ -40,6 +40,7 @@
 #include <omp.h>
 #include "infoli.h"
 #include "infoli_log.h"
+#include "infoli_perf.h"
 #include "utils.h"
 //#include <mic_power.h>
 
@@ -121,9 +122,13 @@ int main(int argc, char *argv[])
 	/* Initialize infoli logging */
 	infoli_init_log(outFileName);
 
+	struct infoli_perf_region *init_stats = infoli_perf_create_region("initialization");
+	
+	infoli_perf_start(init_stats);
 	/* Initialize problem */
 	infoli_init(paramsFileName, &infoli_config);
 
+	infoli_perf_stop(init_stats);
 
 	/* Start the simulation */
 	total_simulation_steps = (int)(simTime/DELTA);
@@ -140,6 +145,8 @@ int main(int argc, char *argv[])
 	/* SIM END: Free  memory and close files */
 
 	/* Execution Time for the Sim */
+
+	infoli_perf_print(init_stats);
 
 	printf("Execution Time for Simulation: %0.2f ms.\n",
 		((toc.tv_sec*1000.0 + ((float)(toc.tv_usec)/1000.0)) -
